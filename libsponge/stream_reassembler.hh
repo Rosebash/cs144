@@ -2,7 +2,9 @@
 #define SPONGE_LIBSPONGE_STREAM_REASSEMBLER_HH
 
 #include "byte_stream.hh"
+#include "deque"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
@@ -11,9 +13,15 @@
 class StreamReassembler {
   private:
     // Your code here -- add private members as necessary.
+    std::deque<char> _buffer{};
+    std::deque<bool> _flag{};
+    size_t _next_index{};
+    size_t _eof_index{};
+    size_t _unassembled_bytes{};
 
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
+    void write_buffer(const size_t buffer_pos, const std::string &data, const size_t pos, const size_t len);
 
   public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
