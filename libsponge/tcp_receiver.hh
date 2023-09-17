@@ -20,6 +20,8 @@ class TCPReceiver {
     //! The maximum number of bytes we'll store.
     size_t _capacity;
 
+    std::optional<WrappingInt32> _isn{};
+
   public:
     //! \brief Construct a TCP receiver
     //!
@@ -50,6 +52,7 @@ class TCPReceiver {
     size_t window_size() const;
     //!@}
 
+    size_t abs_ackno() const;
     //! \brief number of bytes stored but not yet reassembled
     size_t unassembled_bytes() const { return _reassembler.unassembled_bytes(); }
 
