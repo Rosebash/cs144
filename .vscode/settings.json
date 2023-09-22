@@ -5,7 +5,8 @@
     "cstddef": "cpp",
     "deque": "cpp",
     "string": "cpp",
-    "vector": "cpp"
+    "vector": "cpp",
+    "optional": "cpp"
   },
   "C_Cpp.default.compilerPath": "/usr/bin/g++-8"
 }

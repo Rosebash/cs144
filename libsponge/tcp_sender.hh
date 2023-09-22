@@ -7,7 +7,10 @@
 #include "wrapping_integers.hh"
 
 #include <functional>
+#include <map>
 #include <queue>
+#include <set>
+#include <utility>
 
 //! \brief The "sender" part of a TCP implementation.
 
@@ -17,20 +20,75 @@
 //! segments if the retransmission timer expires.
 class TCPSender {
   private:
+    class SegCmp {
+      public:
+        bool operator()(const std::pair<uint64_t, TCPSegment> &lhs, const std::pair<uint64_t, TCPSegment> &rhs) const {
+            return lhs.first < rhs.first;
+        }
+    };
+    class ReTransmitTimer {
+      public:
+        explicit ReTransmitTimer(uint64_t rto) : _time(rto) {}
+
+        bool expired() const { return _time == 0 && !_stopped; }
+
+        void elapse(uint64_t ms) {
+            if (_stopped)
+                return;
+            if (ms >= _time) {
+                _time = 0;
+            } else {
+                _time -= ms;
+            }
+        }
+
+        void reset(uint64_t rto) {
+            _time = rto;
+            _stopped = false;
+        }
+
+        void stop() {
+            _stopped = true;
+            _time = 0;
+        }
+
+        bool stopped() const { return _stopped; }
+
+      private:
+        uint64_t _time{0};
+        bool _stopped{false};
+    };
+
+  private:
     //! our initial sequence number, the number for our SYN.
     WrappingInt32 _isn;
 
     //! outbound queue of segments that the TCPSender wants sent
     std::queue<TCPSegment> _segments_out{};
 
+    std::set<std::pair<uint64_t, TCPSegment>, SegCmp> _segments_in_flight{};
+
     //! retransmission timer for the connection
     unsigned int _initial_retransmission_timeout;
 
     //! outgoing stream of bytes that have not yet been sent
     ByteStream _stream;
+    ReTransmitTimer _timer;
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
+
+    uint64_t _window_size{1};
+
+    uint64_t _consecutive_retransmissions{0};
+
+    uint64_t _rto{0};
+
+    uint64_t _ackno{0};  // checkpoint
+
+    uint64_t _bytes_in_flight{0};
+
+    size_t _get_window_size() const;
 
   public:
     //! Initialize a TCPSender
