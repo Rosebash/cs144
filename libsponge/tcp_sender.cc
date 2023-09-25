@@ -40,10 +40,7 @@ size_t TCPSender::_get_window_size() const {
 
 void TCPSender::fill_window() {
     size_t window_size = _get_window_size();  // sender window size
-    while (window_size > 0 && (!_stream.buffer_empty() || next_seqno_absolute() == 0 ||
-                               (stream_in().eof() && next_seqno_absolute() < stream_in().bytes_written() + 2)))
-
-    {
+    while (window_size > 0 && (!_stream.buffer_empty() || CLOSED() || SYN_ACKED_FIN_TO_BE_SENT())) {
         TCPSegment seg;
         seg.header().seqno = next_seqno();
         seg.header().syn = next_seqno_absolute() == 0;
@@ -118,4 +115,8 @@ void TCPSender::tick(const size_t mmm) {
 
 unsigned int TCPSender::consecutive_retransmissions() const { return _consecutive_retransmissions; }
 
-void TCPSender::send_empty_segment() {}
+void TCPSender::send_empty_segment() {
+    TCPSegment seg;
+    seg.header().seqno = wrap(_next_seqno, _isn);
+    _segments_out.push(seg);
+}

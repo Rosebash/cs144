@@ -1,4 +1,5 @@
 #include "tcp_receiver.hh"
+
 #include <cstdio>
 // Dummy implementation of a TCP receiver
 
@@ -18,14 +19,10 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
     if (!_isn.has_value()) {
         return;
     }
-    
-    printf("isn_value: %u\n", _isn.value().raw_value());
-    printf("seg_header_seq: %u\n", seg.header().seqno.raw_value());
+
     WrappingInt32 n(seg.header().seqno);
     uint64_t checkpoint = stream_out().bytes_written() - 1 + 1;
-    printf("checkpoint: %lu\n", checkpoint);
     uint64_t index = unwrap(n, _isn.value(), checkpoint) - !seg.header().syn;
-    printf("index: %lu\n", index);
     _reassembler.push_substring(seg.payload().copy(), index, seg.header().fin);
 }
 

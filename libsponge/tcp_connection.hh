@@ -13,6 +13,12 @@ class TCPConnection {
     TCPReceiver _receiver{_cfg.recv_capacity};
     TCPSender _sender{_cfg.send_capacity, _cfg.rt_timeout, _cfg.fixed_isn};
 
+    bool _unclean_shutdown{false};
+    bool _clean_shutdown{false};
+
+    size_t _now_time{0};
+    size_t _time_when_last_segment_received{0};
+
     //! outbound queue of segments that the TCPConnection wants sent
     std::queue<TCPSegment> _segments_out{};
 
@@ -20,6 +26,14 @@ class TCPConnection {
     //! for 10 * _cfg.rt_timeout milliseconds after both streams have ended,
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
+
+  private:
+    // utilities
+    void unclean_shutdown();
+
+    void set_header(TCPSegment &seg);
+
+    void forward_segments();
 
   public:
     //! \name "Input" interface for the writer
@@ -94,6 +108,18 @@ class TCPConnection {
     TCPConnection(const TCPConnection &other) = delete;
     TCPConnection &operator=(const TCPConnection &other) = delete;
     //!@}
+
+    // State of TCP FSM
+    bool LISTEN() const { return _receiver.LISTEN() && _sender.CLOSED(); }
+    bool SYN_RVCD() const { return _receiver.SYN_RECV() && _sender.SYNC_SENT(); }
+    bool SYN_SENT() const { return _receiver.LISTEN() && _sender.SYNC_SENT(); }
+    bool ESTABLISHED() const { return _receiver.SYN_RECV() && _sender.SYN_ACKED(); }
+    bool CLOSE_WAIT() const { return _receiver.FIN_RECV() && _sender.SYN_ACKED() && !_linger_after_streams_finish; }
+    bool LAST_ACK() const { return _receiver.FIN_RECV() && _sender.FIN_SENT() && !_linger_after_streams_finish; }
+    bool FIN_WAIT_1() const { return _sender.FIN_SENT() && _receiver.SYN_RECV(); }
+    bool FIN_WAIT_2() const { return _sender.FIN_ACKED() && _receiver.SYN_RECV(); }
+    bool CLOSING() const { return _receiver.FIN_RECV() && _sender.FIN_SENT(); }
+    bool TIME_WAIT() const { return _sender.FIN_ACKED() && _receiver.FIN_RECV(); }
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_FACTORED_HH

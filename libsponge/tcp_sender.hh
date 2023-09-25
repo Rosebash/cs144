@@ -145,6 +145,22 @@ class TCPSender {
     //! \brief relative seqno for the next byte to be sent
     WrappingInt32 next_seqno() const { return wrap(_next_seqno, _isn); }
     //!@}
+
+    // State of sender
+    bool CLOSED() const { return next_seqno_absolute() == 0; }
+    bool SYNC_SENT() const { return next_seqno_absolute() > 0 && next_seqno_absolute() == bytes_in_flight(); }
+    bool SYN_ACKED() const { return next_seqno_absolute() > bytes_in_flight() && !stream_in().eof(); }
+    bool SYN_ACKED_FIN_TO_BE_SENT() const {
+        return stream_in().eof() && (next_seqno_absolute() < stream_in().bytes_written() + 2);
+    }
+    bool FIN_SENT() const {
+        return stream_in().eof() && (next_seqno_absolute() == stream_in().bytes_written() + 2) &&
+               (bytes_in_flight() > 0);
+    }
+    bool FIN_ACKED() const {
+        return stream_in().eof() && (next_seqno_absolute() == stream_in().bytes_written() + 2) &&
+               (bytes_in_flight() == 0);
+    }
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_SENDER_HH
