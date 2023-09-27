@@ -73,7 +73,9 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
     bool segment_received = false;
     for (auto it = _segments_in_flight.begin(); it != _segments_in_flight.end();) {
         const auto &last_seq = it->first;
-        if (unwrap(ackno, _isn, _ackno) >= last_seq) {
+        uint64_t ackno_absolute = unwrap(ackno, _isn, _ackno);
+        if (ackno_absolute >= last_seq
+            && ackno_absolute <= next_seqno_absolute()) {
             _bytes_in_flight -= it->second.length_in_sequence_space();
             it = _segments_in_flight.erase(it);
             _ackno = last_seq;
