@@ -17,7 +17,7 @@ class ByteStream {
     // all, but if any of your tests are taking longer than a second,
     // that's a sign that you probably want to keep exploring
     // different approaches.
-    std::deque<char> _stream{};
+    std::string _stream{};
     size_t _cap{};
     size_t _w_bytes_count{};
     size_t _r_bytes_count{};

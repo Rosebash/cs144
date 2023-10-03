@@ -21,20 +21,20 @@ size_t ByteStream::write(const string &data) {
     size_t remain = remaining_capacity();
     size_t len = min(data.size(), remain);
     _w_bytes_count += len;
-    _stream.insert(_stream.end(), data.begin(), data.begin() + len);
+    _stream += data.substr(0, len);
     return len;
 }
 
 //! \param[in] len bytes will be copied from the output side of the buffer
 string ByteStream::peek_output(const size_t len) const {
-    string res(_stream.begin(), _stream.begin() + min(len, buffer_size()));
-    return res;
+    return _stream.substr(0, min(len, buffer_size()));
 }
 
 //! \param[in] len bytes will be removed from the output side of the buffer
 void ByteStream::pop_output(const size_t len) {
     size_t len2 = min(len, buffer_size());
     _stream.erase(_stream.begin(), _stream.begin() + len2);
+
     _r_bytes_count += len2;
 }
 
