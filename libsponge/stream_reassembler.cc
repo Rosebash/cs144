@@ -37,7 +37,7 @@ void StreamReassembler::write_buffer(size_t buffer_pos, const std::string &data,
         }
     }
 
-    for (size_t i = pos; i < pos + len; i++, buffer_pos++) {
+    for (size_t i = pos; i < pos + len && buffer_pos < _flag.size(); i++, buffer_pos++) {
         if (_flag[buffer_pos] == false) {
             _buffer[buffer_pos] = data[i];
             _flag[buffer_pos] = true;

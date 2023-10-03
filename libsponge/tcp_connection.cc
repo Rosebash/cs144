@@ -80,7 +80,13 @@ size_t TCPConnection::time_since_last_segment_received() const { return _now_tim
 void TCPConnection::segment_received(const TCPSegment &seg) {
     _time_when_last_segment_received = _now_time;
 
-    if (seg.header().rst) {
+    if (LISTEN()) {
+        if (!seg.header().syn) {
+            return;
+        }
+        _receiver.segment_received(seg);
+        _sender.fill_window();
+    } else if (seg.header().rst) {
         unclean_shutdown();
     } else {
         _receiver.segment_received(seg);
@@ -94,6 +100,7 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
             }
         }
     }
+
     forward_segments();
     check_and_set_shutdown_flag();
 }

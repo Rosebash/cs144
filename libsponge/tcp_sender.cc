@@ -105,11 +105,12 @@ void TCPSender::tick(const size_t mmm) {
     if (_timer.expired()) {
         if (!_segments_in_flight.empty()) {
             // TODO: retransmit the earlist segment that hasn't been fully acked
-            _segments_out.push(_segments_in_flight.begin()->second);
             if (_window_size > 0) {
                 _consecutive_retransmissions++;
                 _rto *= 2;
             }
+            if (_consecutive_retransmissions <= TCPConfig::MAX_RETX_ATTEMPTS)
+                _segments_out.push(_segments_in_flight.begin()->second);
             _timer.reset(_rto);
         }
     }

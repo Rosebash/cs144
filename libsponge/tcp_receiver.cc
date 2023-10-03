@@ -23,7 +23,11 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
 
     WrappingInt32 n(seg.header().seqno);
     uint64_t checkpoint = stream_out().bytes_written() - 1 + 1;
-    uint64_t index = unwrap(n, _isn.value(), checkpoint) - !seg.header().syn;
+    uint64_t seqno = unwrap(n, _isn.value(), checkpoint);
+    if(seqno == 0 && !seg.header().syn) {
+        return;
+    }
+    uint64_t index = seqno - !seg.header().syn;
     _reassembler.push_substring(seg.payload().copy(), index, seg.header().fin);
 }
 
