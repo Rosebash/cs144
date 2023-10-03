@@ -45,7 +45,7 @@ void TCPSender::fill_window() {
         seg.header().seqno = next_seqno();
         seg.header().syn = next_seqno_absolute() == 0;
 
-        seg.payload() = std::move(_stream.read(min(window_size - seg.header().syn, TCPConfig::MAX_PAYLOAD_SIZE)));
+        seg.payload() = _stream.read(min(window_size - seg.header().syn, TCPConfig::MAX_PAYLOAD_SIZE));
 
         if (_stream.eof()) {
             if (seg.length_in_sequence_space() + 1 <= window_size) {
@@ -77,8 +77,8 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         if (ackno_absolute >= last_seq
             && ackno_absolute <= next_seqno_absolute()) {
             _bytes_in_flight -= it->second.length_in_sequence_space();
-            it = _segments_in_flight.erase(it);
             _ackno = last_seq;
+            it = _segments_in_flight.erase(it);
             segment_received = true;
         } else {
             ++it;

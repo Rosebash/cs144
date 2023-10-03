@@ -35,6 +35,8 @@ class TCPConnection {
 
     void forward_segments();
 
+    void check_and_set_shutdown_flag();
+
   public:
     //! \name "Input" interface for the writer
     //!@{

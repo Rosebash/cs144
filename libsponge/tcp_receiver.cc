@@ -1,6 +1,7 @@
 #include "tcp_receiver.hh"
 
 #include <cstdio>
+#include <iostream>
 // Dummy implementation of a TCP receiver
 
 // For Lab 2, please replace with a real implementation that passes the

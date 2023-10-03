@@ -41,6 +41,26 @@ void TCPConnection::forward_segments() {
     }
 }
 
+void TCPConnection::check_and_set_shutdown_flag() {
+    if (_sender.consecutive_retransmissions() > TCPConfig::MAX_RETX_ATTEMPTS) {
+        unclean_shutdown();
+        _sender.send_empty_segment();
+        forward_segments();
+    }
+
+    if (_receiver.FIN_RECV() && !_sender.stream_in().eof()) {
+        _linger_after_streams_finish = false;
+    }
+
+    if (TIME_WAIT()) {
+        bool close = (_linger_after_streams_finish == false) ||
+                     (_now_time - _time_when_last_segment_received >= 10 * _cfg.rt_timeout);
+        if (close) {
+            _clean_shutdown = true;
+        }
+    }
+}
+
 void TCPConnection::unclean_shutdown() {
     _sender.stream_in().set_error();
     _receiver.stream_out().set_error();
@@ -69,18 +89,20 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         }
 
         if (seg.length_in_sequence_space() > 0) {
-            if (_segments_out.empty()) {
+            if (_sender.segments_out().empty()) {
                 _sender.send_empty_segment();
             }
         }
     }
+    forward_segments();
+    check_and_set_shutdown_flag();
 }
 
 size_t TCPConnection::write(const string &data) {
     size_t w_bytes_cnt = _sender.stream_in().write(data);
     _sender.fill_window();
     forward_segments();
-
+    check_and_set_shutdown_flag();
     return w_bytes_cnt;
 }
 
@@ -89,32 +111,14 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     _now_time += ms_since_last_tick;
     _sender.tick(ms_since_last_tick);
     forward_segments();
-
-    if (_sender.consecutive_retransmissions() > TCPConfig::MAX_RETX_ATTEMPTS) {
-        unclean_shutdown();
-        _sender.send_empty_segment();
-        forward_segments();
-    }
-
-    if (_receiver.FIN_RECV() && !_sender.stream_in().eof()) {
-        _linger_after_streams_finish = false;
-    }
-
-    if (TIME_WAIT()) {
-        bool close = (_linger_after_streams_finish == false) ||
-                     (_now_time - _time_when_last_segment_received >= 10 * _cfg.rt_timeout);
-        if (close) {
-            _clean_shutdown = true;
-        }
-    }
-
-    // TODO
+    check_and_set_shutdown_flag();
 }
 
 void TCPConnection::end_input_stream() {
     _sender.stream_in().end_input();
     _sender.fill_window();
     forward_segments();
+    check_and_set_shutdown_flag();
 }
 
 void TCPConnection::connect() {
